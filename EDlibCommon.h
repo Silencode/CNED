@@ -1,7 +1,5 @@
-// stdafx.h : 标准系统包含文件的包含文件，
-// 或是经常使用但不常更改的
-// 特定于项目的包含文件
-//
+// EDlibCommon.h : 标准系统包含文件的包含文件，
+// 
 #pragma once
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
@@ -24,15 +22,7 @@
 #include <fstream>
 #include <math.h>
 
-//#include <direct.h>
-
-#include <sys/stat.h> 
-
-#ifdef LINUX
-#include </usr/include/x86_64-linux-gnu/sys/io.h>
-#else 
-#include <io.h>
-#endif
+#include <sys/stat.h>
 
 using namespace std;using namespace cv;
 

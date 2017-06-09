@@ -3,12 +3,15 @@ This code is intended for academic use only.
 You are free to use and modify the code, at your own risk.
 
 If you use this code, or find it useful, please refer to the paper:
-
+Qi Jia, Xin Fan, Zhongxuan Luo, Lianbo Song, and Tie Qiu, 
+“A Fast Ellipse Detector Using Projective Invariant Pruning”, 
+IEEE Transactions on Image Processing, 26(8): 3665-3679, 2017. 
+http://ieeexplore.ieee.org/document/7929406/
+(http://dx.doi.org/10.1109/TIP.2017.2704660)
 
 The comments in the code refer to the abovementioned paper.
 If you need further details about the code or the algorithm, please contact me at:
-
-lianbosong@foxmail.com
+lianbosong#foxmail.com
 
 last update: 
 */
@@ -17,7 +20,7 @@ last update:
 
 #ifndef GLOBAL
 #define GLOBAL
-//声明全局变量
+	//Global data
 	extern bool myselect1;
 	extern bool myselect2;
 	extern bool myselect3;
@@ -30,15 +33,7 @@ last update:
 #define DISCARD_TCN
 //#define DISCARD_CONSTRAINT_OBOX
 
-// Data available after selection strategy. 
-// They are kept in an associative array to:
-// 1) avoid recomputing data when starting from same arcs
-// 2) be reused in firther proprecessing
-// See Sect [] in the paper
-
-
-struct EllipseData
-{
+struct EllipseData {
 	bool isValid;
 	float ta;//弧a的 平行弦中点连线梯度
 	float tb;//弧b的
@@ -51,8 +46,7 @@ struct EllipseData
 	vector<float> Sb;//
 };
 
-class CNEllipseDetector
-{
+class CNEllipseDetector {
 	// Parameters
 
 	// Preprocessing - Gaussian filter. See Sect [] in the paper
@@ -174,68 +168,52 @@ private:
 	int FindMaxA(const int* v) const;
 
 	float GetMedianSlope(vector<Point2f>& med, Point2f& M, vector<float>& slopes);
-	void GetFastCenter	(vector<Point>& e1, vector<Point>& e2, EllipseData& data);
+	void GetFastCenter(vector<Point>& e1, vector<Point>& e2, EllipseData& data);
 	
 
 	void DetectEdges13(Mat1b& DP, VVP& points_1, VVP& points_3);
 	void DetectEdges24(Mat1b& DN, VVP& points_2, VVP& points_4);
 
-	void FindEllipses	(	Point2f& center,
-							VP& edge_i,
-							VP& edge_j,
-							VP& edge_k,
-							EllipseData& data_ij,
-							EllipseData& data_ik,
-							vector<Ellipse>& ellipses
-						);
+	void FindEllipses(	Point2f& center, VP& edge_i, VP& edge_j, VP& edge_k, 
+						EllipseData& data_ij, EllipseData& data_ik,
+						vector<Ellipse>& ellipses);
 
 	Point2f GetCenterCoordinates(EllipseData& data_ij, EllipseData& data_ik);
 	Point2f _GetCenterCoordinates(EllipseData& data_ij, EllipseData& data_ik);
 
 	
 
-	void Triplets124	(	VVP& pi,
-							VVP& pj,
-							VVP& pk,
-							unordered_map<uint, EllipseData>& data,
-							vector<Ellipse>& ellipses
-						);
+	void Triplets124(	VVP& pi, VVP& pj, VVP& pk,
+						unordered_map<uint, EllipseData>& data,
+						vector<Ellipse>& ellipses
+					);
 
-	void Triplets231	(	VVP& pi,
-							VVP& pj,
-							VVP& pk,
-							unordered_map<uint, EllipseData>& data,
-							vector<Ellipse>& ellipses
-						);
+	void Triplets231(	VVP& pi, VVP& pj, VVP& pk, 
+						unordered_map<uint, EllipseData>& data,
+						vector<Ellipse>& ellipses
+					);
 
-	void Triplets342	(	VVP& pi,
-							VVP& pj,
-							VVP& pk,
-							unordered_map<uint, EllipseData>& data,
-							vector<Ellipse>& ellipses
-						);
+	void Triplets342(	VVP& pi, VVP& pj, VVP& pk,
+						unordered_map<uint, EllipseData>& data,
+						vector<Ellipse>& ellipses
+					);
 
-	void Triplets413	(	VVP& pi,
-							VVP& pj,
-							VVP& pk,
-							unordered_map<uint, EllipseData>& data,
-							vector<Ellipse>& ellipses
-						);
+	void Triplets413(	VVP& pi, VVP& pj, VVP& pk,
+						unordered_map<uint, EllipseData>& data,
+						vector<Ellipse>& ellipses
+					);
 
-	void Tic(unsigned idx) //start
-	{
+	void Tic(unsigned idx) {//start
 		_timesHelper[idx] = 0.0;
 		_times[idx] = (double)cv::getTickCount();
 	};
 
-	void Tac(unsigned idx) //restart
-	{
+	void Tac(unsigned idx) {//restart
 		_timesHelper[idx] = _times[idx];
 		_times[idx] = (double)cv::getTickCount();
 	};
 
-	void Toc(unsigned idx) //stop
-	{
+	void Toc(unsigned idx) {//stop
 		_times[idx] = ((double)cv::getTickCount() - _times[idx])*1000. / cv::getTickFrequency();
 		_times[idx] += _timesHelper[idx];
 	};

@@ -3,12 +3,21 @@ This code is intended for academic use only.
 You are free to use and modify the code, at your own risk.
 
 If you use this code, or find it useful, please refer to the paper:
+Qi Jia, Xin Fan, Zhongxuan Luo, Lianbo Song, and Tie Qiu, 
+¡°A Fast Ellipse Detector Using Projective Invariant Pruning¡±, 
+IEEE Transactions on Image Processing, 26(8): 3665-3679, 2017. 
+http://ieeexplore.ieee.org/document/7929406/
+(http://dx.doi.org/10.1109/TIP.2017.2704660)
 
+Michele Fornaciari, Andrea Prati, Rita Cucchiara,
+A fast and effective ellipse detector for embedded vision applications
+Pattern Recognition, Volume 47, Issue 11, November 2014, Pages 3693-3708, ISSN 0031-3203,
+http://dx.doi.org/10.1016/j.patcog.2014.05.012.
+(http://www.sciencedirect.com/science/article/pii/S0031320314001976)
 
 The comments in the code refer to the abovementioned paper.
 If you need further details about the code or the algorithm, please contact me at:
-
-michele.fornaciari@unimore.it
+lianbosong#foxmail.com
 
 last update: 23/12/2014
 */

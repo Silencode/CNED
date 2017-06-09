@@ -4,17 +4,21 @@ You are free to use and modify the code, at your own risk.
 
 If you use this code, or find it useful, please refer to the paper:
 
+Qi Jia, Xin Fan, Zhongxuan Luo, Lianbo Song, and Tie Qiu, 
+¡°A Fast Ellipse Detector Using Projective Invariant Pruning¡±, 
+IEEE Transactions on Image Processing, 26(8): 3665-3679, 2017. 
+http://ieeexplore.ieee.org/document/7929406/
+(http://dx.doi.org/10.1109/TIP.2017.2704660)
+
 Michele Fornaciari, Andrea Prati, Rita Cucchiara,
 A fast and effective ellipse detector for embedded vision applications
 Pattern Recognition, Volume 47, Issue 11, November 2014, Pages 3693-3708, ISSN 0031-3203,
 http://dx.doi.org/10.1016/j.patcog.2014.05.012.
 (http://www.sciencedirect.com/science/article/pii/S0031320314001976)
 
-
 The comments in the code refer to the abovementioned paper.
 If you need further details about the code or the algorithm, please contact me at:
-
-michele.fornaciari@unimore.it
+lianbosong#foxmail.com
 
 last update: 23/12/2014
 */
@@ -25,8 +29,7 @@ last update: 23/12/2014
 void cvCanny2(	const void* srcarr, void* dstarr,
 				double low_thresh, double high_thresh,
 				void* dxarr, void* dyarr,
-                int aperture_size )
-{
+                int aperture_size ) {
     //cv::Ptr<CvMat> dx, dy;
     cv::AutoBuffer<char> buffer;
     std::vector<uchar*> stack;
@@ -58,14 +61,13 @@ void cvCanny2(	const void* srcarr, void* dstarr,
     if( !CV_ARE_SIZES_EQ( src, dst ))
         CV_Error( CV_StsUnmatchedSizes, "" );
 
-    if( low_thresh > high_thresh )
-    {
+    if( low_thresh > high_thresh ) {
         double t;
         CV_SWAP( low_thresh, high_thresh, t );
     }
 
     aperture_size &= INT_MAX;
-    if( (aperture_size & 1) == 0 || aperture_size < 3 || aperture_size > 7 )
+    if( (aperture_size & 1) == 0 || aperture_size < 3 || aperture_size > 7 ) 
         CV_Error( CV_StsBadFlag, "" );
 	
 	size.width = src->cols;
@@ -84,17 +86,14 @@ void cvCanny2(	const void* srcarr, void* dstarr,
 	//Mat ddy(dy,true);
 
 
-    if( flags & CV_CANNY_L2_GRADIENT )
-    {
+    if( flags & CV_CANNY_L2_GRADIENT ) {
         Cv32suf ul, uh;
         ul.f = (float)low_thresh;
         uh.f = (float)high_thresh;
 
         low = ul.i;
         high = uh.i;
-    }
-    else
-    {
+    } else {
         low = cvFloor( low_thresh );
         high = cvFloor( high_thresh );
     }
@@ -137,8 +136,7 @@ void cvCanny2(	const void* srcarr, void* dstarr,
     //   0 - the pixel might belong to an edge
     //   1 - the pixel can not belong to an edge
     //   2 - the pixel does belong to an edge
-    for( i = 0; i <= size.height; i++ )
-    {
+    for( i = 0; i <= size.height; i++ ) {
         int* _mag = mag_buf[(i > 0) + 1] + 1;
         float* _magf = (float*)_mag;
         const short* _dx = (short*)(dx->data.ptr + dx->step*i);
@@ -148,30 +146,25 @@ void cvCanny2(	const void* srcarr, void* dstarr,
         ptrdiff_t magstep1, magstep2;
         int prev_flag = 0;
 
-        if( i < size.height )
-        {
+        if( i < size.height ) {
             _mag[-1] = _mag[size.width] = 0;
 
             if( !(flags & CV_CANNY_L2_GRADIENT) )
                 for( j = 0; j < size.width; j++ )
                     _mag[j] = abs(_dx[j]) + abs(_dy[j]);
 
-            else
-            {
-                for( j = 0; j < size.width; j++ )
-                {
+            else {
+                for( j = 0; j < size.width; j++ ) {
                     x = _dx[j]; y = _dy[j];
                     _magf[j] = (float)std::sqrt((double)x*x + (double)y*y);
                 }
             }
-        }
-        else
-            memset( _mag-1, 0, (size.width + 2)*sizeof(int) );
+        } else 
+			memset( _mag-1, 0, (size.width + 2)*sizeof(int) );
 
         // at the very beginning we do not have a complete ring
         // buffer of 3 magnitude rows for non-maxima suppression
-        if( i == 0 )
-            continue;
+        if( i == 0 ) continue;
 
         _map = map + mapstep*i + 1;
         _map[-1] = _map[size.width] = 1;
@@ -183,8 +176,7 @@ void cvCanny2(	const void* srcarr, void* dstarr,
         magstep1 = mag_buf[2] - mag_buf[1];
         magstep2 = mag_buf[0] - mag_buf[1];
 
-        if( (stack_top - stack_bottom) + size.width > maxsize )
-        {
+        if( (stack_top - stack_bottom) + size.width > maxsize ) {
             int sz = (int)(stack_top - stack_bottom);
             maxsize = MAX( maxsize * 3/2, maxsize + 8 );
             stack.resize(maxsize);
@@ -192,8 +184,7 @@ void cvCanny2(	const void* srcarr, void* dstarr,
             stack_top = stack_bottom + sz;
         }
 
-        for( j = 0; j < size.width; j++ )
-        {
+        for( j = 0; j < size.width; j++ ) {
             #define CANNY_SHIFT 15
             #define TG22  (int)(0.4142135623730950488016887242097*(1<<CANNY_SHIFT) + 0.5)
 
@@ -204,52 +195,38 @@ void cvCanny2(	const void* srcarr, void* dstarr,
 
             x = abs(x);
             y = abs(y);
-            if( m > low )
-            {
+            if( m > low ) {
                 int tg22x = x * TG22;
                 int tg67x = tg22x + ((x + x) << CANNY_SHIFT);
 
                 y <<= CANNY_SHIFT;
 
-                if( y < tg22x )
-                {
-                    if( m > _mag[j-1] && m >= _mag[j+1] )
-                    {
-                        if( m > high && !prev_flag && _map[j-mapstep] != 2 )
-                        {
+                if( y < tg22x ) {
+                    if( m > _mag[j-1] && m >= _mag[j+1] ) {
+                        if( m > high && !prev_flag && _map[j-mapstep] != 2 ) {
                             CANNY_PUSH( _map + j );
                             prev_flag = 1;
-                        }
-                        else
+                        } else
                             _map[j] = (uchar)0;
                         continue;
                     }
                 }
-                else if( y > tg67x )
-                {
-                    if( m > _mag[j+magstep2] && m >= _mag[j+magstep1] )
-                    {
-                        if( m > high && !prev_flag && _map[j-mapstep] != 2 )
-                        {
+                else if( y > tg67x ) {
+                    if( m > _mag[j+magstep2] && m >= _mag[j+magstep1] ) {
+                        if( m > high && !prev_flag && _map[j-mapstep] != 2 ) {
                             CANNY_PUSH( _map + j );
                             prev_flag = 1;
-                        }
-                        else
+                        } else 
                             _map[j] = (uchar)0;
                         continue;
                     }
-                }
-                else
-                {
+                } else {
                     s = s < 0 ? -1 : 1;
-                    if( m > _mag[j+magstep2-s] && m > _mag[j+magstep1+s] )
-                    {
-                        if( m > high && !prev_flag && _map[j-mapstep] != 2 )
-                        {
+                    if( m > _mag[j+magstep2-s] && m > _mag[j+magstep1+s] ) {
+                        if( m > high && !prev_flag && _map[j-mapstep] != 2 ) {
                             CANNY_PUSH( _map + j );
                             prev_flag = 1;
-                        }
-                        else
+                        } else
                             _map[j] = (uchar)0;
                         continue;
                     }
@@ -267,11 +244,9 @@ void cvCanny2(	const void* srcarr, void* dstarr,
     }
 
     // now track the edges (hysteresis thresholding)
-    while( stack_top > stack_bottom )
-    {
+    while( stack_top > stack_bottom ) {
         uchar* m;
-        if( (stack_top - stack_bottom) + 8 > maxsize )
-        {
+        if( (stack_top - stack_bottom) + 8 > maxsize ) {
             int sz = (int)(stack_top - stack_bottom);
             maxsize = MAX( maxsize * 3/2, maxsize + 8 );
             stack.resize(maxsize);
@@ -300,13 +275,11 @@ void cvCanny2(	const void* srcarr, void* dstarr,
     }
 
     // the final pass, form the final image
-    for( i = 0; i < size.height; i++ )
-    {
+    for( i = 0; i < size.height; i++ ) {
         const uchar* _map = map + mapstep*(i+1) + 1;
         uchar* _dst = dst->data.ptr + dst->step*i;
 
-        for( j = 0; j < size.width; j++ )
-		{
+        for( j = 0; j < size.width; j++ ) {
             _dst[j] = (uchar)-(_map[j] >> 1);
 		}
 	}
@@ -315,8 +288,7 @@ void cvCanny2(	const void* srcarr, void* dstarr,
 void Canny2(	InputArray image, OutputArray _edges,
 				OutputArray _sobel_x, OutputArray _sobel_y,
                 double threshold1, double threshold2,
-                int apertureSize, bool L2gradient )
-{
+                int apertureSize, bool L2gradient ) {
     Mat src = image.getMat();
     _edges.create(src.size(), CV_8U);
 	_sobel_x.create(src.size(), CV_16S);
@@ -334,8 +306,7 @@ void Canny2(	InputArray image, OutputArray _edges,
 };
 
 
-void Labeling(Mat1b& image, vector<vector<Point> >& segments, int iMinLength)
-{
+void Labeling(Mat1b& image, vector<vector<Point> >& segments, int iMinLength) {
 	#define RG_STACK_SIZE 2048
 
 	// Uso stack globali per velocizzare l'elaborazione (anche a scapito della memoria occupata)
@@ -360,12 +331,9 @@ void Labeling(Mat1b& image, vector<vector<Point> >& segments, int iMinLength)
 	iDim = w*h;
 
 	Point point;
-	for (y=0; y<h; ++y)
-	{
-		for (x=0; x<w; ++x)
-		{
-			if ((src(y,x))!=0)   //punto non etichettato: seme trovato
-			{
+	for (y=0; y<h; ++y) {
+		for (x=0; x<w; ++x) {
+			if ((src(y,x))!=0) {   //punto non etichettato: seme trovato
 				// per ogni oggetto
 				sp2 = 0;
 				i = x + y*w;
@@ -373,8 +341,7 @@ void Labeling(Mat1b& image, vector<vector<Point> >& segments, int iMinLength)
 
 				// vuoto la lista dei punti
 	    		sp3=0;
-  		  		while (sp2>0)
-				{// rg tradizionale
+  		  		while (sp2>0) {// rg tradizionale
 
 					RG_POP2(i);
 					x2=i%w;
@@ -385,8 +352,7 @@ void Labeling(Mat1b& image, vector<vector<Point> >& segments, int iMinLength)
 					point.x=x2;
 					point.y=y2;
 
-					if(src(y2,x2))
-					{
+					if(src(y2,x2)) {
 						RG_PUSH3(point);
 						src(y2,x2) = 0;
 					}
@@ -420,8 +386,7 @@ void Labeling(Mat1b& image, vector<vector<Point> >& segments, int iMinLength)
 
 				}
 
-				if (sp3 >= iMinLength)
-				{
+				if (sp3 >= iMinLength) {
 					vector<Point> component;
 					component.reserve(sp3);
 
@@ -439,8 +404,7 @@ void Labeling(Mat1b& image, vector<vector<Point> >& segments, int iMinLength)
 
 
 
-void LabelingRect(Mat1b& image, VVP& segments, int iMinLength, vector<Rect>& bboxes)
-{
+void LabelingRect(Mat1b& image, VVP& segments, int iMinLength, vector<Rect>& bboxes) {
 
 	#define _RG_STACK_SIZE 10000
 
@@ -466,12 +430,9 @@ void LabelingRect(Mat1b& image, VVP& segments, int iMinLength, vector<Rect>& bbo
 	iDim = w*h;
 
 	Point point;
-	for (y=0; y<h; y++)
-	{
-		for (x=0; x<w; x++)
-		{
-			if ((src(y,x))!=0)   //punto non etichettato: seme trovato
-			{
+	for (y=0; y<h; y++) {
+		for (x=0; x<w; x++) {
+			if ((src(y,x))!=0) {   //punto non etichettato: seme trovato
 				// per ogni oggetto	
 				sp2 = 0;
 				i = x + y*w;
@@ -479,8 +440,7 @@ void LabelingRect(Mat1b& image, VVP& segments, int iMinLength, vector<Rect>& bbo
 
 				// vuoto la lista dei punti
 	    		sp3=0;
-  		  		while (sp2>0) 
-				{// rg tradizionale
+  		  		while (sp2>0)  {// rg tradizionale
 		
 					_RG_POP2(i);
 					x2=i%w;
@@ -521,8 +481,7 @@ void LabelingRect(Mat1b& image, VVP& segments, int iMinLength, vector<Rect>& bbo
 
 				}
 
-				if (sp3 >= iMinLength)
-				{
+				if (sp3 >= iMinLength) {
 					vector<Point> component;
 
 					int iMinx, iMaxx, iMiny,iMaxy;
@@ -553,17 +512,14 @@ void LabelingRect(Mat1b& image, VVP& segments, int iMinLength, vector<Rect>& bbo
 
 
 // Thinning Zhang e Suen 
-void Thinning(Mat1b& imgMask, uchar byF, uchar byB) 
-{
+void Thinning(Mat1b& imgMask, uchar byF, uchar byB)  {
 	int r = imgMask.rows;
 	int c = imgMask.cols;
 
 	Mat_<uchar> imgIT(r,c),imgM(r,c);
 
-	for(int i=0; i<r; ++i)
-	{		
-		for(int j=0; j<c; ++j)
-		{
+	for(int i=0; i<r; ++i) {		
+		for(int j=0; j<c; ++j) {
 			imgIT(i,j) = imgMask(i,j)==byF?1:0;
 		}
 	}
@@ -973,10 +929,8 @@ a_2:
 		}
 	}
 
-	for(int i=0; i<r; ++i)
-	{		
-		for(int j=0; j<c; ++j)
-		{
+	for(int i=0; i<r; ++i) {		
+		for(int j=0; j<c; ++j) {
 			imgMask(i,j) = imgIT(i,j)==1 ? byF : byB;
 		}
 	}
@@ -984,29 +938,23 @@ a_2:
 
 
 
-bool SortBottomLeft2TopRight(const Point& lhs, const Point& rhs)
-{
-	if(lhs.x == rhs.x)
-	{
+bool SortBottomLeft2TopRight(const Point& lhs, const Point& rhs) {
+	if(lhs.x == rhs.x) {
 		return lhs.y > rhs.y;
 	}
 	return lhs.x < rhs.x;
 };
 
-bool SortBottomLeft2TopRight2f(const Point2f& lhs, const Point2f& rhs)
-{
-	if(lhs.x == rhs.x)
-	{
+bool SortBottomLeft2TopRight2f(const Point2f& lhs, const Point2f& rhs) {
+	if(lhs.x == rhs.x) {
 		return lhs.y > rhs.y;
 	}
 	return lhs.x < rhs.x;
 };
 
 
-bool SortTopLeft2BottomRight(const Point& lhs, const Point& rhs)
-{
-	if(lhs.x == rhs.x)
-	{
+bool SortTopLeft2BottomRight(const Point& lhs, const Point& rhs) {
+	if(lhs.x == rhs.x) {
 		return lhs.y < rhs.y;
 	}
 	return lhs.x < rhs.x;
@@ -1015,8 +963,7 @@ bool SortTopLeft2BottomRight(const Point& lhs, const Point& rhs)
 
 void cvCanny3(	const void* srcarr, void* dstarr,
 				void* dxarr, void* dyarr,
-                int aperture_size )
-{
+                int aperture_size ) {
     //cv::Ptr<CvMat> dx, dy;
     cv::AutoBuffer<char> buffer;
     std::vector<uchar*> stack;
@@ -1074,13 +1021,11 @@ void cvCanny3(	const void* srcarr, void* dstarr,
 	Mat1f magGrad(size.height, size.width, 0.f);
 	float maxGrad(0);
 	float val(0);
-	for(i=0; i<size.height; ++i)
-	{
+	for(i=0; i<size.height; ++i) {
 		float* _pmag = magGrad.ptr<float>(i);
 		const short* _dx = (short*)(dx->data.ptr + dx->step*i);
         const short* _dy = (short*)(dy->data.ptr + dy->step*i);
-		for(j=0; j<size.width; ++j)
-		{
+		for(j=0; j<size.width; ++j) {
 			val = float(abs(_dx[j]) + abs(_dy[j]));
 			_pmag[j] = val;
 			maxGrad = (val > maxGrad) ? val : maxGrad;
@@ -1101,11 +1046,9 @@ void cvCanny3(	const void* srcarr, void* dstarr,
 	int bin_size = cvFloor(maxGrad / float(NUM_BINS) + 0.5f) + 1;
 	if (bin_size < 1) bin_size = 1;
 	int bins[NUM_BINS] = { 0 }; 
-	for (i=0; i<size.height; ++i) 
-	{
+	for (i=0; i<size.height; ++i)  {
 		float *_pmag = magGrad.ptr<float>(i);
-		for(j=0; j<size.width; ++j)
-		{
+		for(j=0; j<size.width; ++j) {
 			int hgf = int(_pmag[j]);
 			bins[int(_pmag[j]) / bin_size]++;
 		}
@@ -1119,16 +1062,14 @@ void cvCanny3(	const void* srcarr, void* dstarr,
 	float target = float(size.height * size.width * percent_of_pixels_not_edges);
 	int low_thresh, high_thresh(0);
 	
-	while(total < target)
-	{
+	while(total < target) {
 		total+= bins[high_thresh];
 		high_thresh++;
 	}
 	high_thresh *= bin_size;
 	low_thresh = cvFloor(threshold_ratio * float(high_thresh));
 	
-    if( flags & CV_CANNY_L2_GRADIENT )
-    {
+    if( flags & CV_CANNY_L2_GRADIENT ) {
         Cv32suf ul, uh;
         ul.f = (float)low_thresh;
         uh.f = (float)high_thresh;
@@ -1136,8 +1077,7 @@ void cvCanny3(	const void* srcarr, void* dstarr,
         low = ul.i;
         high = uh.i;
     }
-    else
-    {
+    else {
         low = cvFloor( low_thresh );
         high = cvFloor( high_thresh );
     }
@@ -1180,8 +1120,7 @@ void cvCanny3(	const void* srcarr, void* dstarr,
     //   0 - the pixel might belong to an edge
     //   1 - the pixel can not belong to an edge
     //   2 - the pixel does belong to an edge
-    for( i = 0; i <= size.height; i++ )
-    {
+    for( i = 0; i <= size.height; i++ ) {
         int* _mag = mag_buf[(i > 0) + 1] + 1;
         float* _magf = (float*)_mag;
         const short* _dx = (short*)(dx->data.ptr + dx->step*i);
@@ -1191,18 +1130,15 @@ void cvCanny3(	const void* srcarr, void* dstarr,
         ptrdiff_t magstep1, magstep2;
         int prev_flag = 0;
 
-        if( i < size.height )
-        {
+        if( i < size.height ) {
             _mag[-1] = _mag[size.width] = 0;
 
             if( !(flags & CV_CANNY_L2_GRADIENT) )
                 for( j = 0; j < size.width; j++ )
                     _mag[j] = abs(_dx[j]) + abs(_dy[j]);
 
-            else
-            {
-                for( j = 0; j < size.width; j++ )
-                {
+            else {
+                for( j = 0; j < size.width; j++ ) {
                     x = _dx[j]; y = _dy[j];
                     _magf[j] = (float)std::sqrt((double)x*x + (double)y*y);
                 }
@@ -1226,8 +1162,7 @@ void cvCanny3(	const void* srcarr, void* dstarr,
         magstep1 = mag_buf[2] - mag_buf[1];
         magstep2 = mag_buf[0] - mag_buf[1];
 
-        if( (stack_top - stack_bottom) + size.width > maxsize )
-        {
+        if( (stack_top - stack_bottom) + size.width > maxsize ) {
             int sz = (int)(stack_top - stack_bottom);
             maxsize = MAX( maxsize * 3/2, maxsize + 8 );
             stack.resize(maxsize);
@@ -1235,8 +1170,7 @@ void cvCanny3(	const void* srcarr, void* dstarr,
             stack_top = stack_bottom + sz;
         }
 
-        for( j = 0; j < size.width; j++ )
-        {
+        for( j = 0; j < size.width; j++ ) {
             #define CANNY_SHIFT 15
             #define TG22  (int)(0.4142135623730950488016887242097*(1<<CANNY_SHIFT) + 0.5)
 
@@ -1247,19 +1181,15 @@ void cvCanny3(	const void* srcarr, void* dstarr,
 
             x = abs(x);
             y = abs(y);
-            if( m > low )
-            {
+            if( m > low ) {
                 int tg22x = x * TG22;
                 int tg67x = tg22x + ((x + x) << CANNY_SHIFT);
 
                 y <<= CANNY_SHIFT;
 
-                if( y < tg22x )
-                {
-                    if( m > _mag[j-1] && m >= _mag[j+1] )
-                    {
-                        if( m > high && !prev_flag && _map[j-mapstep] != 2 )
-                        {
+                if( y < tg22x ) {
+                    if( m > _mag[j-1] && m >= _mag[j+1] ) {
+                        if( m > high && !prev_flag && _map[j-mapstep] != 2 ) {
                             CANNY_PUSH( _map + j );
                             prev_flag = 1;
                         }
@@ -1268,12 +1198,9 @@ void cvCanny3(	const void* srcarr, void* dstarr,
                         continue;
                     }
                 }
-                else if( y > tg67x )
-                {
-                    if( m > _mag[j+magstep2] && m >= _mag[j+magstep1] )
-                    {
-                        if( m > high && !prev_flag && _map[j-mapstep] != 2 )
-                        {
+                else if( y > tg67x ) {
+                    if( m > _mag[j+magstep2] && m >= _mag[j+magstep1] ) {
+                        if( m > high && !prev_flag && _map[j-mapstep] != 2 ) {
                             CANNY_PUSH( _map + j );
                             prev_flag = 1;
                         }
@@ -1282,13 +1209,10 @@ void cvCanny3(	const void* srcarr, void* dstarr,
                         continue;
                     }
                 }
-                else
-                {
+                else {
                     s = s < 0 ? -1 : 1;
-                    if( m > _mag[j+magstep2-s] && m > _mag[j+magstep1+s] )
-                    {
-                        if( m > high && !prev_flag && _map[j-mapstep] != 2 )
-                        {
+                    if( m > _mag[j+magstep2-s] && m > _mag[j+magstep1+s] ) {
+                        if( m > high && !prev_flag && _map[j-mapstep] != 2 ) {
                             CANNY_PUSH( _map + j );
                             prev_flag = 1;
                         }
@@ -1310,11 +1234,9 @@ void cvCanny3(	const void* srcarr, void* dstarr,
     }
 
     // now track the edges (hysteresis thresholding)
-    while( stack_top > stack_bottom )
-    {
+    while( stack_top > stack_bottom ) {
         uchar* m;
-        if( (stack_top - stack_bottom) + 8 > maxsize )
-        {
+        if( (stack_top - stack_bottom) + 8 > maxsize ) {
             int sz = (int)(stack_top - stack_bottom);
             maxsize = MAX( maxsize * 3/2, maxsize + 8 );
             stack.resize(maxsize);
@@ -1343,13 +1265,11 @@ void cvCanny3(	const void* srcarr, void* dstarr,
     }
 
     // the final pass, form the final image
-    for( i = 0; i < size.height; i++ )
-    {
+    for( i = 0; i < size.height; i++ ) {
         const uchar* _map = map + mapstep*(i+1) + 1;
         uchar* _dst = dst->data.ptr + dst->step*i;
 
-        for( j = 0; j < size.width; j++ )
-		{
+        for( j = 0; j < size.width; j++ ) {
             _dst[j] = (uchar)-(_map[j] >> 1);
 		}
 	}
@@ -1357,8 +1277,7 @@ void cvCanny3(	const void* srcarr, void* dstarr,
 
 void Canny3(	InputArray image, OutputArray _edges,
 				OutputArray _sobel_x, OutputArray _sobel_y,
-                int apertureSize, bool L2gradient )
-{
+                int apertureSize, bool L2gradient ) {
     Mat src = image.getMat();
     _edges.create(src.size(), CV_8U);
 	_sobel_x.create(src.size(), CV_16S);
@@ -1376,8 +1295,7 @@ void Canny3(	InputArray image, OutputArray _edges,
 };
 
 
-float GetMinAnglePI(float alpha, float beta)
-{
+float GetMinAnglePI(float alpha, float beta) {
 	float pi = float(CV_PI);
 	float pi2 = float(2.0 * CV_PI);
 
@@ -1391,8 +1309,7 @@ float GetMinAnglePI(float alpha, float beta)
 	if (b > pi)
 		b -= pi;
 
-	if (a > b)
-	{
+	if (a > b) {
 		swap(a, b);
 	}
 

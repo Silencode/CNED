@@ -3,14 +3,15 @@ This code is intended for academic use only.
 You are free to use and modify the code, at your own risk.
 
 If you use this code, or find it useful, please refer to the paper:
-
+Qi Jia, Xin Fan, Zhongxuan Luo, Lianbo Song, and Tie Qiu, 
+“A Fast Ellipse Detector Using Projective Invariant Pruning”, 
+IEEE Transactions on Image Processing, 26(8): 3665-3679, 2017. 
+http://ieeexplore.ieee.org/document/7929406/
+(http://dx.doi.org/10.1109/TIP.2017.2704660)
 
 The comments in the code refer to the abovementioned paper.
 If you need further details about the code or the algorithm, please contact me at:
-
-lianbosong@foxmail.com
-
-last update: 
+lianbosong#foxmail.com
 */
 
 #include "EDLibCommon.h"
@@ -24,8 +25,9 @@ bool myselect3=false;
 float tCNC=0.2f;
 float tTCNl=3.0f;
 
-CNEllipseDetector::CNEllipseDetector(void) : _times(6, 0.0), _timesHelper(6, 0.0)
-{
+CNEllipseDetector::CNEllipseDetector(void) 
+	: _times(6, 0.0), 
+	  _timesHelper(6, 0.0) {
 	// Default Parameters Settings
 	_szPreProcessingGaussKernelSize = Size(5, 5);
 	_dPreProcessingGaussSigma = 1.0;
@@ -35,16 +37,14 @@ CNEllipseDetector::CNEllipseDetector(void) : _times(6, 0.0), _timesHelper(6, 0.0
 	_iMinEdgeLength = 16;
 	_fMinOrientedRectSide = 3.0f;
 	_fDistanceToEllipseContour = 0.1f;
-	_fMinScore =0.7f;
-	_fMinReliability =0.5;
+	_fMinScore = 0.7f;
+	_fMinReliability = 0.5f;
 	_uNs = 16;
 
 	srand(unsigned(time(NULL)));
 }
 
-CNEllipseDetector::~CNEllipseDetector(void)
-{
-}
+CNEllipseDetector::~CNEllipseDetector(void) { }
 
 void CNEllipseDetector::SetParameters(Size	szPreProcessingGaussKernelSize,
 									  double	dPreProcessingGaussSigma,
@@ -55,8 +55,7 @@ void CNEllipseDetector::SetParameters(Size	szPreProcessingGaussKernelSize,
 									  float	fDistanceToEllipseContour,
 									  float	fMinScore,
 									  float	fMinReliability,
-									  int     iNs)
-{
+									  int     iNs) {
 	_szPreProcessingGaussKernelSize = szPreProcessingGaussKernelSize;
 	_dPreProcessingGaussSigma = dPreProcessingGaussSigma;
 	_fThPosition = fThPosition;
@@ -69,57 +68,48 @@ void CNEllipseDetector::SetParameters(Size	szPreProcessingGaussKernelSize,
 	_uNs = iNs;
 
 	_fMaxCenterDistance2 = _fMaxCenterDistance * _fMaxCenterDistance;
-
 }
 
-uint inline CNEllipseDetector::GenerateKey(uchar pair, ushort u, ushort v)
-{
+uint inline CNEllipseDetector::GenerateKey(uchar pair, ushort u, ushort v) {
 	return (pair << 30) + (u << 15) + v;
 };
 
-int CNEllipseDetector::FindMaxK(const int* v) const
-{
+int CNEllipseDetector::FindMaxK(const int* v) const {
 	int max_val = 0;
 	int max_idx = 0;
-	for (int i = 0; i<ACC_R_SIZE; ++i)
-	{
+	for (int i = 0; i < ACC_R_SIZE; ++i) {
 		(v[i] > max_val) ? max_val = v[i], max_idx = i : NULL;
 	}
-
 	return max_idx + 90;
 };
 
-int CNEllipseDetector::FindMaxN(const int* v) const
-{
+int CNEllipseDetector::FindMaxN(const int* v) const {
 	int max_val = 0;
 	int max_idx = 0;
-	for (int i = 0; i<ACC_N_SIZE; ++i)
-	{
+	for (int i = 0; i < ACC_N_SIZE; ++i) {
+		(v[i] > max_val) ? max_val = v[i], max_idx = i : NULL;
+	}
+	return max_idx;
+};
+
+int CNEllipseDetector::FindMaxA(const int* v) const {
+	int max_val = 0;
+	int max_idx = 0;
+	for (int i = 0; i<ACC_A_SIZE; ++i) {
 		(v[i] > max_val) ? max_val = v[i], max_idx = i : NULL;
 	}
 
 	return max_idx;
 };
 
-int CNEllipseDetector::FindMaxA(const int* v) const
-{
-	int max_val = 0;
-	int max_idx = 0;
-	for (int i = 0; i<ACC_A_SIZE; ++i)
-	{
-		(v[i] > max_val) ? max_val = v[i], max_idx = i : NULL;
-	}
-
-	return max_idx;
-};
-
-float CNEllipseDetector::GetMedianSlope(vector<Point2f>& med, Point2f& M, vector<float>& slopes)
-{//input med slopes ;output:M return  
+float CNEllipseDetector::GetMedianSlope(vector<Point2f>& med, Point2f& M, 
+										vector<float>& slopes) {
+	//input med slopes ;output:M return  
 	// med		: vector of points  
 	// M		: centroid of the points in med  
 	// slopes	: vector of the slopes  
 
-	unsigned iNofPoints = med.size();
+	unsigned iNofPoints = (unsigned) med.size();
 	//CV_Assert(iNofPoints >= 2);
 
 	unsigned halfSize = iNofPoints >> 1;
@@ -130,8 +120,7 @@ float CNEllipseDetector::GetMedianSlope(vector<Point2f>& med, Point2f& M, vector
 	xx.reserve(iNofPoints);
 	yy.reserve(iNofPoints);
 
-	for (unsigned i = 0; i < halfSize; ++i)
-	{
+	for (unsigned i = 0; i < halfSize; ++i) {
 		Point2f& p1 = med[i];
 		Point2f& p2 = med[halfSize + i];
 
@@ -158,8 +147,8 @@ float CNEllipseDetector::GetMedianSlope(vector<Point2f>& med, Point2f& M, vector
 };
 
 
-void CNEllipseDetector::GetFastCenter(vector<Point>& e1, vector<Point>& e2, EllipseData& data)
-{
+void CNEllipseDetector::GetFastCenter(vector<Point>& e1, vector<Point>& e2, 
+									  EllipseData& data) {
 	countsOfGetFastCenter++;
 	data.isValid = true;
 
@@ -191,23 +180,18 @@ void CNEllipseDetector::GetFastCenter(vector<Point>& e1, vector<Point>& e2, Elli
 		unsigned minPoints = (_uNs < hsize_2) ? _uNs : hsize_2;//平行弦个数
 
 		vector<uint> indexes(minPoints);
-		if (_uNs < hsize_2)
-		{//半个弧点数多于设定的最少平行弦数
+		if (_uNs < hsize_2) {//半个弧点数多于设定的最少平行弦数
 			unsigned iSzBin = hsize_2 / unsigned(_uNs);
 			unsigned iIdx = hsize_2 + (iSzBin / 2);
 
-			for (unsigned i = 0; i<_uNs; ++i)
-			{
+			for (unsigned i = 0; i<_uNs; ++i) {
 				indexes[i] = iIdx;
 				iIdx += iSzBin;
 			}
-		}
-		else
-		{
+		} else {
 			iota(indexes.begin(), indexes.end(), hsize_2);//转成unsigned
 		}
-		for (uint ii = 0; ii<minPoints; ++ii)
-		{//弧2中每个点找到对应平行弦点
+		for (uint ii = 0; ii<minPoints; ++ii) {//弧2中每个点找到对应平行弦点
 			uint i = indexes[ii];
 
 			float x1 = float(e2[i].x);
@@ -220,10 +204,9 @@ void CNEllipseDetector::GetFastCenter(vector<Point>& e1, vector<Point>& e2, Elli
 			float yb = float(e1[begin].y);
 			float res_begin = ((xb - x1) * dy_ref) - ((yb - y1) * dx_ref);
 			int sign_begin = sgn(res_begin);
-			if (sign_begin == 0)
-			{
+			if (sign_begin == 0) {
 				//found
-				med.push_back(Point2f((xb + x1)* 0.5f, (yb + y1)* 0.5f));
+				med.push_back(Point2f((xb + x1) * 0.5f, (yb + y1) * 0.5f));
 				continue;
 			}
 
@@ -231,52 +214,44 @@ void CNEllipseDetector::GetFastCenter(vector<Point>& e1, vector<Point>& e2, Elli
 			float ye = float(e1[end].y);
 			float res_end = ((xe - x1) * dy_ref) - ((ye - y1) * dx_ref);
 			int sign_end = sgn(res_end);
-			if (sign_end == 0)
-			{
+			if (sign_end == 0) {
 				//found
-				med.push_back(Point2f((xe + x1)* 0.5f, (ye + y1)* 0.5f));
+				med.push_back(Point2f((xe + x1) * 0.5f, (ye + y1) * 0.5f));
 				continue;
 			}
 			//如果在一侧
-			if ((sign_begin + sign_end) != 0)
-			{//区域内没有平行的弦
+			if ((sign_begin + sign_end) != 0) {//区域内没有平行的弦
 				continue;
 			}
 
 			//二分法查找平行弦
 			uint j = (begin + end) >> 1;
-			while (end - begin > 2)
-			{
+			while (end - begin > 2) {
 				float x2 = float(e1[j].x);
 				float y2 = float(e1[j].y);
 				float res = ((x2 - x1) * dy_ref) - ((y2 - y1) * dx_ref);
 				int sign_res = sgn(res);
 
-				if (sign_res == 0)
-				{
+				if (sign_res == 0) {
 					//found
-					med.push_back(Point2f((x2 + x1)* 0.5f, (y2 + y1)* 0.5f));
+					med.push_back(Point2f((x2 + x1) * 0.5f, (y2 + y1) * 0.5f));
 					break;
 				}
 
-				if (sign_res + sign_begin == 0)
-				{
+				if (sign_res + sign_begin == 0) {
 					sign_end = sign_res;
 					end = j;
-				}
-				else
-				{
+				} else {
 					sign_begin = sign_res;
 					begin = j;
 				}
 				j = (begin + end) >> 1;
 			}
 			//二分法查找平行弦 end 有错
-			med.push_back(Point2f((e1[j].x + x1)* 0.5f, (e1[j].y + y1)* 0.5f));
+			med.push_back(Point2f((e1[j].x + x1) * 0.5f, (e1[j].y + y1) * 0.5f));
 		}
 
-		if (med.size() < 2)
-		{
+		if (med.size() < 2) {
 			data.isValid = false;
 			return;
 		}
@@ -301,25 +276,21 @@ void CNEllipseDetector::GetFastCenter(vector<Point>& e1, vector<Point>& e2, Elli
 		uint minPoints = (_uNs < hsize_1) ? _uNs : hsize_1;
 
 		vector<uint> indexes(minPoints);
-		if (_uNs < hsize_1)
-		{
+		if (_uNs < hsize_1) {
 			unsigned iSzBin = hsize_1 / unsigned(_uNs);
 			unsigned iIdx = hsize_1 + (iSzBin / 2);
 
-			for (unsigned i = 0; i<_uNs; ++i)
-			{
+			for (unsigned i = 0; i < _uNs; ++i) {
 				indexes[i] = iIdx;
 				iIdx += iSzBin;
 			}
 		}
-		else
-		{
+		else {
 			iota(indexes.begin(), indexes.end(), hsize_1);
 		}
 
 
-		for (uint ii = 0; ii<minPoints; ++ii)
-		{
+		for (uint ii = 0; ii < minPoints; ++ii) {
 			uint i = indexes[ii];
 
 			float x1 = float(e1[i].x);
@@ -332,10 +303,9 @@ void CNEllipseDetector::GetFastCenter(vector<Point>& e1, vector<Point>& e2, Elli
 			float yb = float(e2[begin].y);
 			float res_begin = ((xb - x1) * dy_ref) - ((yb - y1) * dx_ref);
 			int sign_begin = sgn(res_begin);
-			if (sign_begin == 0)
-			{
+			if (sign_begin == 0) {
 				//found
-				med.push_back(Point2f((xb + x1)* 0.5f, (yb + y1)* 0.5f));
+				med.push_back(Point2f((xb + x1) * 0.5f, (yb + y1) * 0.5f));
 				continue;
 			}
 
@@ -343,67 +313,58 @@ void CNEllipseDetector::GetFastCenter(vector<Point>& e1, vector<Point>& e2, Elli
 			float ye = float(e2[end].y);
 			float res_end = ((xe - x1) * dy_ref) - ((ye - y1) * dx_ref);
 			int sign_end = sgn(res_end);
-			if (sign_end == 0)
-			{
+			if (sign_end == 0) {
 				//found
-				med.push_back(Point2f((xe + x1)* 0.5f, (ye + y1)* 0.5f));
+				med.push_back(Point2f((xe + x1) * 0.5f, (ye + y1) * 0.5f));
 				continue;
 			}
 
-			if ((sign_begin + sign_end) != 0)
-			{
+			if ((sign_begin + sign_end) != 0) {
 				continue;
 			}
 
 			uint j = (begin + end) >> 1;
 
-			while (end - begin > 2)
-			{
+			while (end - begin > 2) {
 				float x2 = float(e2[j].x);
 				float y2 = float(e2[j].y);
 				float res = ((x2 - x1) * dy_ref) - ((y2 - y1) * dx_ref);
 				int sign_res = sgn(res);
 
-				if (sign_res == 0)
-				{
+				if (sign_res == 0) {
 					//found
-					med.push_back(Point2f((x2 + x1)* 0.5f, (y2 + y1)* 0.5f));
+					med.push_back(Point2f((x2 + x1) * 0.5f, (y2 + y1) * 0.5f));
 					break;
 				}
 
-				if (sign_res + sign_begin == 0)
-				{
+				if (sign_res + sign_begin == 0) {
 					sign_end = sign_res;
 					end = j;
-				}
-				else
-				{
+				} else {
 					sign_begin = sign_res;
 					begin = j;
 				}
 				j = (begin + end) >> 1;
 			}
 
-			med.push_back(Point2f((e2[j].x + x1)* 0.5f, (e2[j].y + y1)* 0.5f));
+			med.push_back(Point2f((e2[j].x + x1) * 0.5f, (e2[j].y + y1) * 0.5f));
 		}
 
-		if (med.size() < 2)
-		{
+		if (med.size() < 2) {
 			data.isValid = false;
 			return;
 		}
 		q4 = GetMedianSlope(med, M34, data.Sb);
 	}
 
-	if (q2 == q4)
-	{
+	if (q2 == q4) {
 		data.isValid = false;
 		return;
 	}
 
 	float invDen = 1 / (q2 - q4);
-	data.Cab.x = (M34.y - q4*M34.x - M12.y + q2*M12.x) * invDen;
-	data.Cab.y = (q2*M34.y - q4*M12.y + q2*q4*(M12.x - M34.x)) * invDen;
+	data.Cab.x = (M34.y - q4 * M34.x - M12.y + q2 * M12.x) * invDen;
+	data.Cab.y = (q2*M34.y - q4 * M12.y + q2 * q4 * (M12.x - M34.x)) * invDen;
 	data.ta = q2;
 	data.tb = q4;
 	data.Ma = M12;
@@ -411,8 +372,7 @@ void CNEllipseDetector::GetFastCenter(vector<Point>& e1, vector<Point>& e2, Elli
 };
 
 #define	DISCARD_TCN1
-void CNEllipseDetector::DetectEdges13(Mat1b& DP, VVP& points_1, VVP& points_3)
-{
+void CNEllipseDetector::DetectEdges13(Mat1b& DP, VVP& points_1, VVP& points_3) {
 	// Vector of connected edge points
 	VVP contours;
 	int countedges=0;
@@ -421,8 +381,7 @@ void CNEllipseDetector::DetectEdges13(Mat1b& DP, VVP& points_1, VVP& points_3)
 	int iContoursSize = int(contours.size());
 
 	// For each edge
-	for (int i = 0; i < iContoursSize; ++i)
-	{
+	for (int i = 0; i < iContoursSize; ++i) {
 		VP& edgeSegment = contours[i];
 #ifndef DISCARD_CONSTRAINT_OBOX
 
@@ -431,8 +390,7 @@ void CNEllipseDetector::DetectEdges13(Mat1b& DP, VVP& points_1, VVP& points_3)
 		RotatedRect oriented = minAreaRect(edgeSegment);
 		float o_min = min(oriented.size.width, oriented.size.height);
 
-		if (o_min < _fMinOrientedRectSide)
-		{
+		if (o_min < _fMinOrientedRectSide) {
 			countedges++;
 			continue;
 		}
@@ -487,8 +445,7 @@ void CNEllipseDetector::DetectEdges13(Mat1b& DP, VVP& points_1, VVP& points_3)
 		// Find convexity - See Sect [3.1.3] of the paper
 		int iCountTop = 0;
 		int xx = left.x;
-		for (int k = 1; k < iEdgeSegmentSize; ++k)
-		{
+		for (int k = 1; k < iEdgeSegmentSize; ++k) {
 			if (edgeSegment[k].x == xx) continue;
 
 			iCountTop += (edgeSegment[k].y - left.y);
@@ -499,20 +456,17 @@ void CNEllipseDetector::DetectEdges13(Mat1b& DP, VVP& points_1, VVP& points_3)
 		int height = abs(right.y - left.y) + 1;
 		int iCountBottom = (width * height) - iEdgeSegmentSize - iCountTop;
 
-		if (iCountBottom > iCountTop)
-		{	//1
+		if (iCountBottom > iCountTop) {	//1
 			points_1.push_back(edgeSegment);
 		}
-		else if (iCountBottom < iCountTop)
-		{	//3
+		else if (iCountBottom < iCountTop) {	//3
 			points_3.push_back(edgeSegment);
 		}
 	}
 };
 
 
-void CNEllipseDetector::DetectEdges24(Mat1b& DN, VVP& points_2, VVP& points_4 )
-{
+void CNEllipseDetector::DetectEdges24(Mat1b& DN, VVP& points_2, VVP& points_4 ) {
 	// Vector of connected edge points
 	VVP contours;
 	int countedges=0;
@@ -522,8 +476,7 @@ void CNEllipseDetector::DetectEdges24(Mat1b& DN, VVP& points_2, VVP& points_4 )
 	int iContoursSize = unsigned(contours.size());
 
 	// For each edge
-	for (int i = 0; i < iContoursSize; ++i)
-	{
+	for (int i = 0; i < iContoursSize; ++i) {
 		VP& edgeSegment = contours[i];
 
 #ifndef DISCARD_CONSTRAINT_OBOX
@@ -533,8 +486,7 @@ void CNEllipseDetector::DetectEdges24(Mat1b& DN, VVP& points_2, VVP& points_4 )
 		RotatedRect oriented = minAreaRect(edgeSegment);
 		float o_min = min(oriented.size.width, oriented.size.height);
 
-		if (o_min < _fMinOrientedRectSide)
-		{
+		if (o_min < _fMinOrientedRectSide) {
 			countedges++;
 			continue;
 		}
@@ -591,8 +543,7 @@ void CNEllipseDetector::DetectEdges24(Mat1b& DN, VVP& points_2, VVP& points_4 )
 		//判断凹凸性
 		int iCountBottom = 0;
 		int xx = left.x;
-		for (int k = 1; k < iEdgeSegmentSize; ++k)
-		{
+		for (int k = 1; k < iEdgeSegmentSize; ++k) {
 			if (edgeSegment[k].x == xx) continue;
 
 			iCountBottom += (left.y - edgeSegment[k].y);
@@ -603,13 +554,11 @@ void CNEllipseDetector::DetectEdges24(Mat1b& DN, VVP& points_2, VVP& points_4 )
 		int height = abs(right.y - left.y) + 1;
 		int iCountTop = (width *height) - iEdgeSegmentSize - iCountBottom;
 
-		if (iCountBottom > iCountTop)
-		{
+		if (iCountBottom > iCountTop) {
 			//2
 			points_2.push_back(edgeSegment);
 		}
-		else if (iCountBottom < iCountTop)
-		{
+		else if (iCountBottom < iCountTop) {
 			//4
 			points_4.push_back(edgeSegment);
 		}
@@ -618,10 +567,10 @@ void CNEllipseDetector::DetectEdges24(Mat1b& DN, VVP& points_2, VVP& points_4 )
 
 // Most important function for detecting ellipses. See Sect[3.2.3] of the paper
 void CNEllipseDetector::FindEllipses(Point2f& center,
-									 VP& edge_i,VP& edge_j,VP& edge_k,
-									 EllipseData& data_ij,EllipseData& data_ik,
-									 vector<Ellipse>& ellipses)
-{//根据三段弧计算椭圆参数，并计算得到的椭圆参数的准确定。
+									 VP& edge_i, VP& edge_j, VP& edge_k,
+									 EllipseData& data_ij, EllipseData& data_ik,
+									 vector<Ellipse>& ellipses) {
+	//根据三段弧计算椭圆参数，并计算得到的椭圆参数的准确定。
 	countsOfFindEllipse++;
 	// Find ellipse parameters
 
@@ -656,14 +605,12 @@ void CNEllipseDetector::FindEllipses(Point2f& center,
 		float q3 = data_ik.ra;
 		float q5 = data_ik.rb;
 
-		for (int ij1 = 0; ij1 < sz_ij1; ++ij1)
-		{
+		for (int ij1 = 0; ij1 < sz_ij1; ++ij1) {
 			float q2 = data_ij.Sa[ij1];//有必要遍历吗？
 
 			float q1xq2 = q1*q2;
 			// ij1 and ik1
-			for (int ik1 = 0; ik1 < sz_ik1; ++ik1)
-			{
+			for (int ik1 = 0; ik1 < sz_ik1; ++ik1) {
 				float q4 = data_ik.Sa[ik1];//有必要遍历吗？
 
 				float q3xq4 = q3*q4;
@@ -680,13 +627,11 @@ void CNEllipseDetector::FindEllipses(Point2f& center,
 				float Np = sqrt(-zplus);//N+
 				float rho = atan(Kp);//rho tmp
 				int rhoDeg;
-				if (Np > 1.f)
-				{
+				if (Np > 1.f) {
 					Np = 1.f / Np;
 					rhoDeg = cvRound((rho * 180 / CV_PI) + 180) % 180; // [0,180)					
 				}
-				else
-				{
+				else {
 					rhoDeg = cvRound((rho * 180 / CV_PI) + 90) % 180; // [0,180)//rho 角度表示，归一化
 				}
 
@@ -694,15 +639,13 @@ void CNEllipseDetector::FindEllipses(Point2f& center,
 
 				if (0 <= iNp	&& iNp < ACC_N_SIZE &&
 					0 <= rhoDeg	&& rhoDeg < ACC_R_SIZE
-					)
-				{//为什么都遍历，只遍历一个可以吗  因为 zplus 和K不是线性关系
+					) {//为什么都遍历，只遍历一个可以吗  因为 zplus 和K不是线性关系
 					++accN[iNp];	// Increment N accumulator
 					++accR[rhoDeg];	// Increment R accumulator
 				}
 			}
 			// ij1 and ik2
-			for (int ik2 = 0; ik2 < sz_ik2; ++ik2)
-			{
+			for (int ik2 = 0; ik2 < sz_ik2; ++ik2) {
 				float q4 = data_ik.Sb[ik2];
 
 				float q5xq4 = q5*q4;
@@ -714,21 +657,18 @@ void CNEllipseDetector::FindEllipses(Point2f& center,
 				float Kp = (-b + sqrt(b*b + 4 * a*a)) / (2 * a);
 				float zplus = ((q1 - Kp)*(q2 - Kp)) / ((1 + q1*Kp)*(1 + q2*Kp));
 
-				if (zplus >= 0.0f)
-				{
+				if (zplus >= 0.0f) {
 					continue;
 				}
 
 				float Np = sqrt(-zplus);
 				float rho = atan(Kp);
 				int rhoDeg;
-				if (Np > 1.f)
-				{
+				if (Np > 1.f) {
 					Np = 1.f / Np;
 					rhoDeg = cvRound((rho * 180 / CV_PI) + 180) % 180; // [0,180)					
 				}
-				else
-				{
+				else {
 					rhoDeg = cvRound((rho * 180 / CV_PI) + 90) % 180; // [0,180)
 				}
 
@@ -736,8 +676,7 @@ void CNEllipseDetector::FindEllipses(Point2f& center,
 
 				if (0 <= iNp	&& iNp < ACC_N_SIZE &&
 					0 <= rhoDeg	&& rhoDeg < ACC_R_SIZE
-					)
-				{
+					) {
 					++accN[iNp];		// Increment N accumulator
 					++accR[rhoDeg];		// Increment R accumulator
 				}
@@ -752,14 +691,12 @@ void CNEllipseDetector::FindEllipses(Point2f& center,
 		float q3 = data_ik.rb;
 		float q5 = data_ik.ra;
 
-		for (int ij2 = 0; ij2 < sz_ij2; ++ij2)
-		{
+		for (int ij2 = 0; ij2 < sz_ij2; ++ij2) {
 			float q2 = data_ij.Sb[ij2];
 
 			float q1xq2 = q1*q2;
 			//ij2 and ik2
-			for (int ik2 = 0; ik2 < sz_ik2; ++ik2)
-			{
+			for (int ik2 = 0; ik2 < sz_ik2; ++ik2) {
 				float q4 = data_ik.Sb[ik2];
 
 				float q3xq4 = q3*q4;
@@ -771,21 +708,17 @@ void CNEllipseDetector::FindEllipses(Point2f& center,
 				float Kp = (-b + sqrt(b*b + 4 * a*a)) / (2 * a);
 				float zplus = ((q1 - Kp)*(q2 - Kp)) / ((1 + q1*Kp)*(1 + q2*Kp));
 
-				if (zplus >= 0.0f)
-				{
+				if (zplus >= 0.0f) {
 					continue;
 				}
 
 				float Np = sqrt(-zplus);
 				float rho = atan(Kp);
 				int rhoDeg;
-				if (Np > 1.f)
-				{
+				if (Np > 1.f) {
 					Np = 1.f / Np;
 					rhoDeg = cvRound((rho * 180 / CV_PI) + 180) % 180; // [0,180)
-				}
-				else
-				{
+				} else {
 					rhoDeg = cvRound((rho * 180 / CV_PI) + 90) % 180; // [0,180)
 				}
 
@@ -793,16 +726,14 @@ void CNEllipseDetector::FindEllipses(Point2f& center,
 
 				if (0 <= iNp	&& iNp < ACC_N_SIZE &&
 					0 <= rhoDeg	&& rhoDeg < ACC_R_SIZE
-					)
-				{
+					) {
 					++accN[iNp];		// Increment N accumulator
 					++accR[rhoDeg];		// Increment R accumulator
 				}
 			}
 
 			//ij2 and ik1
-			for (int ik1 = 0; ik1 < sz_ik1; ++ik1)
-			{
+			for (int ik1 = 0; ik1 < sz_ik1; ++ik1) {
 				float q4 = data_ik.Sa[ik1];
 
 				float q5xq4 = q5*q4;
@@ -814,21 +745,17 @@ void CNEllipseDetector::FindEllipses(Point2f& center,
 				float Kp = (-b + sqrt(b*b + 4 * a*a)) / (2 * a);
 				float zplus = ((q1 - Kp)*(q2 - Kp)) / ((1 + q1*Kp)*(1 + q2*Kp));
 
-				if (zplus >= 0.0f)
-				{
+				if (zplus >= 0.0f) {
 					continue;
 				}
 
 				float Np = sqrt(-zplus);
 				float rho = atan(Kp);
 				int rhoDeg;
-				if (Np > 1.f)
-				{
+				if (Np > 1.f) {
 					Np = 1.f / Np;
 					rhoDeg = cvRound((rho * 180 / CV_PI) + 180) % 180; // [0,180)
-				}
-				else
-				{
+				} else {
 					rhoDeg = cvRound((rho * 180 / CV_PI) + 90) % 180; // [0,180)
 				}
 
@@ -836,8 +763,7 @@ void CNEllipseDetector::FindEllipses(Point2f& center,
 
 				if (0 <= iNp	&& iNp < ACC_N_SIZE &&
 					0 <= rhoDeg	&& rhoDeg < ACC_R_SIZE
-					)
-				{
+					) {
 					++accN[iNp];		// Increment N accumulator
 					++accR[rhoDeg];		// Increment R accumulator
 				}
@@ -859,44 +785,38 @@ void CNEllipseDetector::FindEllipses(Point2f& center,
 	// Estimate A. See Eq. [19 - 22] in Sect [3.2.3] of the paper  
 	// 三段弧上的点都用来估算A
 	//可以优化   
-	for (ushort l = 0; l < sz_ei; ++l)
-	{
+	for (ushort l = 0; l < sz_ei; ++l) {
 		Point& pp = edge_i[l];
 		float sk = 1.f / sqrt(Kp*Kp + 1.f);//cos rho
 		float x0 = ((pp.x - a0) * sk) + (((pp.y - b0)*Kp) * sk);//可优化
 		float y0 = -(((pp.x - a0) * Kp) * sk) + ((pp.y - b0) * sk);//可优化
 		float Ax = sqrt((x0*x0*Np*Np + y0*y0) / ((Np*Np)*(1.f + Kp*Kp)));
 		int A = cvRound(abs(Ax / cos(rho)));//可以优化
-		if ((0 <= A) && (A < ACC_A_SIZE))
-		{
+		if ((0 <= A) && (A < ACC_A_SIZE)) {
 			++accA[A];
 		}
 	}
 
-	for (ushort l = 0; l < sz_ej; ++l)
-	{
+	for (ushort l = 0; l < sz_ej; ++l) {
 		Point& pp = edge_j[l];
 		float sk = 1.f / sqrt(Kp*Kp + 1.f);
 		float x0 = ((pp.x - a0) * sk) + (((pp.y - b0)*Kp) * sk);
 		float y0 = -(((pp.x - a0) * Kp) * sk) + ((pp.y - b0) * sk);
 		float Ax = sqrt((x0*x0*Np*Np + y0*y0) / ((Np*Np)*(1.f + Kp*Kp)));
 		int A = cvRound(abs(Ax / cos(rho)));
-		if ((0 <= A) && (A < ACC_A_SIZE))
-		{
+		if ((0 <= A) && (A < ACC_A_SIZE)) {
 			++accA[A];
 		}
 	}
 
-	for (ushort l = 0; l < sz_ek; ++l)
-	{
+	for (ushort l = 0; l < sz_ek; ++l) {
 		Point& pp = edge_k[l];
 		float sk = 1.f / sqrt(Kp*Kp + 1.f);
 		float x0 = ((pp.x - a0) * sk) + (((pp.y - b0)*Kp) * sk);
 		float y0 = -(((pp.x - a0) * Kp) * sk) + ((pp.y - b0) * sk);
 		float Ax = sqrt((x0*x0*Np*Np + y0*y0) / ((Np*Np)*(1.f + Kp*Kp)));
 		int A = cvRound(abs(Ax / cos(rho)));
-		if ((0 <= A) && (A < ACC_A_SIZE))
-		{
+		if ((0 <= A) && (A < ACC_A_SIZE)) {
 			++accA[A];
 		}
 	}
@@ -926,51 +846,44 @@ void CNEllipseDetector::FindEllipses(Point2f& center,
 	float invNofPoints = 1.f / float(sz_ei + sz_ej + sz_ek);
 	int counter_on_perimeter = 0;
 
-	for (ushort l = 0; l < sz_ei; ++l)
-	{
+	for (ushort l = 0; l < sz_ei; ++l) {
 		float tx = float(edge_i[l].x) - ell._xc;
 		float ty = float(edge_i[l].y) - ell._yc;
 		float rx = (tx*_cos - ty*_sin);
 		float ry = (tx*_sin + ty*_cos);
 
 		float h = (rx*rx)*invA2 + (ry*ry)*invB2;
-		if (abs(h - 1.f) < _fDistanceToEllipseContour)
-		{
+		if (abs(h - 1.f) < _fDistanceToEllipseContour) {
 			++counter_on_perimeter;
 		}
 	}
 
-	for (ushort l = 0; l < sz_ej; ++l)
-	{
+	for (ushort l = 0; l < sz_ej; ++l) {
 		float tx = float(edge_j[l].x) - ell._xc;
 		float ty = float(edge_j[l].y) - ell._yc;
 		float rx = (tx*_cos - ty*_sin);
 		float ry = (tx*_sin + ty*_cos);
 
 		float h = (rx*rx)*invA2 + (ry*ry)*invB2;
-		if (abs(h - 1.f) < _fDistanceToEllipseContour)
-		{
+		if (abs(h - 1.f) < _fDistanceToEllipseContour) {
 			++counter_on_perimeter;
 		}
 	}
 
-	for (ushort l = 0; l < sz_ek; ++l)
-	{
+	for (ushort l = 0; l < sz_ek; ++l) {
 		float tx = float(edge_k[l].x) - ell._xc;
 		float ty = float(edge_k[l].y) - ell._yc;
 		float rx = (tx*_cos - ty*_sin);
 		float ry = (tx*_sin + ty*_cos);
 
 		float h = (rx*rx)*invA2 + (ry*ry)*invB2;
-		if (abs(h - 1.f) < _fDistanceToEllipseContour)
-		{
+		if (abs(h - 1.f) < _fDistanceToEllipseContour) {
 			++counter_on_perimeter;
 		}
 	}
 
 	//no points found on the ellipse
-	if (counter_on_perimeter <= 0)
-	{
+	if (counter_on_perimeter <= 0) {
 		Toc(4); //validation
 		return;
 	}
@@ -978,8 +891,7 @@ void CNEllipseDetector::FindEllipses(Point2f& center,
 
 	// Compute score
 	float score = float(counter_on_perimeter) * invNofPoints;
-	if (score < _fMinScore)
-	{
+	if (score < _fMinScore) {
 		Toc(4); //validation
 		return;
 	}
@@ -1035,8 +947,7 @@ void CNEllipseDetector::FindEllipses(Point2f& center,
 	// This allows to get rid of thick edges
 	float rel = min(1.f, ((di + dj + dk) / (3 * (ell._a + ell._b))));
 
-	if (rel < _fMinReliability)
-	{
+	if (rel < _fMinReliability) {
 		Toc(4); //validation
 		return;
 	}
@@ -1051,8 +962,7 @@ void CNEllipseDetector::FindEllipses(Point2f& center,
 };
 
 // Get the coordinates of the center, given the intersection of the estimated lines. See Fig. [8] in Sect [3.2.3] in the paper.
-Point2f CNEllipseDetector::GetCenterCoordinates(EllipseData& data_ij, EllipseData& data_ik)
-{
+Point2f CNEllipseDetector::GetCenterCoordinates(EllipseData& data_ij, EllipseData& data_ik) {
 	float xx[7];
 	float yy[7];
 
@@ -1134,16 +1044,14 @@ Point2f CNEllipseDetector::GetCenterCoordinates(EllipseData& data_ij, EllipseDat
 // Verify triplets of arcs with convexity: i=1, j=2, k=4
 void CNEllipseDetector::Triplets124(VVP& pi,VVP& pj,VVP& pk,
 									unordered_map<uint, EllipseData>& data,
-									vector<Ellipse>& ellipses)
-{
+									vector<Ellipse>& ellipses) {
 	// get arcs length
 	ushort sz_i = ushort(pi.size());
 	ushort sz_j = ushort(pj.size());
 	ushort sz_k = ushort(pk.size());
 
 	// For each edge i
-	for (ushort i = 0; i < sz_i; ++i)
-	{
+	for (ushort i = 0; i < sz_i; ++i) {
 		VP& edge_i = pi[i];
 		ushort sz_ei = ushort(edge_i.size());
 
@@ -1156,8 +1064,7 @@ void CNEllipseDetector::Triplets124(VVP& pi,VVP& pj,VVP& pk,
 		reverse_copy(edge_i.begin(), edge_i.end(), rev_i.begin());
 
 		// For each edge j
-		for (ushort j = 0; j < sz_j; ++j)
-		{
+		for (ushort j = 0; j < sz_j; ++j) {
 			VP& edge_j = pj[j];
 			ushort sz_ej = ushort(edge_j.size());
 
@@ -1166,21 +1073,18 @@ void CNEllipseDetector::Triplets124(VVP& pi,VVP& pj,VVP& pk,
 			Point& pjl = edge_j[sz_ej - 1];
 
 			// CONSTRAINTS on position
-			if (pjl.x > pif.x + _fThPosition) //is right	
-			{
+			if (pjl.x > pif.x + _fThPosition) {//is right
 				//discard
 				continue;
 			}
 			// 添加限定条件  
-			if(myselect1&&fabs(value4SixPoints(T124)-1)>tCNC)
-			{
+			if(myselect1&&fabs(value4SixPoints(T124)-1)>tCNC) {
 				continue;
 			}
 			uint key_ij = GenerateKey(PAIR_12, i, j);
 
 			//for each edge k
-			for (ushort k = 0; k < sz_k; ++k)
-			{
+			for (ushort k = 0; k < sz_k; ++k) {
 				VP& edge_k = pk[k];
 				ushort sz_ek = ushort(edge_k.size());
 
@@ -1189,20 +1093,17 @@ void CNEllipseDetector::Triplets124(VVP& pi,VVP& pj,VVP& pk,
 				Point& pkl = edge_k[sz_ek - 1];
 
 				//CONSTRAINTS on position
-				if (pkl.y < pil.y - _fThPosition)
-				{
+				if (pkl.y < pil.y - _fThPosition) {
 					//discard
 					continue;
 				}
 
 				// 添加限定条件2
-				if(myselect2&&fabs(value4SixPoints(pif,pim,pil,pkf,pkm,pkl)-1)>tCNC)
-				{
+				if(myselect2&&fabs(value4SixPoints(pif,pim,pil,pkf,pkm,pkl)-1)>tCNC) {
 					continue;
 				}
 				// 添加限定条件3
-				if(myselect3&&fabs(value4SixPoints(pjf,pjm,pjl,pkf,pkm,pkl)-1)>tCNC)
-				{
+				if(myselect3&&fabs(value4SixPoints(pjf,pjm,pjl,pkf,pkm,pkl)-1)>tCNC) {
 					continue;
 				}
 
@@ -1212,47 +1113,39 @@ void CNEllipseDetector::Triplets124(VVP& pi,VVP& pj,VVP& pk,
 				EllipseData data_ij, data_ik;
 
 				// If the data for the pair i-j have not been computed yet
-				if (data.count(key_ij) == 0)
-				{
+				if (data.count(key_ij) == 0) {
 					//1,2 -> reverse 1, swap
 
 					// Compute data!
 					GetFastCenter(edge_j, rev_i, data_ij);
 					// Insert computed data in the hash table
 					data.insert(pair<uint, EllipseData>(key_ij, data_ij));
-				}
-				else
-				{
+				} else {
 					// Otherwise, just lookup the data in the hash table
 					data_ij = data.at(key_ij);
 				}
 
 				// If the data for the pair i-k have not been computed yet
-				if (data.count(key_ik) == 0)
-				{
+				if (data.count(key_ik) == 0) {
 					//1,4 -> ok
 
 					// Compute data!
 					GetFastCenter(edge_i, edge_k, data_ik);
 					// Insert computed data in the hash table
 					data.insert(pair<uint, EllipseData>(key_ik, data_ik));
-				}
-				else
-				{
+				} else {
 					// Otherwise, just lookup the data in the hash table
 					data_ik = data.at(key_ik);
 				}
 
 				// INVALID CENTERS
-				if (!data_ij.isValid || !data_ik.isValid)
-				{
+				if (!data_ij.isValid || !data_ik.isValid) {
 					continue;
 				}
 
 				// Selection strategy - Step 3. See Sect [3.2.2] in the paper
 				// The computed centers are not close enough
-				if (ed2(data_ij.Cab, data_ik.Cab) > _fMaxCenterDistance2)
-				{
+				if (ed2(data_ij.Cab, data_ik.Cab) > _fMaxCenterDistance2) {
 					//discard
 					continue;
 				}
@@ -1276,15 +1169,13 @@ void CNEllipseDetector::Triplets124(VVP& pi,VVP& pj,VVP& pk,
 
 void CNEllipseDetector::Triplets231(VVP& pi,VVP& pj,VVP& pk,
 									unordered_map<uint, EllipseData>& data,
-									vector<Ellipse>& ellipses)
-{
+									vector<Ellipse>& ellipses) {
 	ushort sz_i = ushort(pi.size());
 	ushort sz_j = ushort(pj.size());
 	ushort sz_k = ushort(pk.size());
 
 	// For each edge i
-	for (ushort i = 0; i < sz_i; ++i)
-	{
+	for (ushort i = 0; i < sz_i; ++i) {
 		VP& edge_i = pi[i];
 		ushort sz_ei = ushort(edge_i.size());
 
@@ -1296,8 +1187,7 @@ void CNEllipseDetector::Triplets231(VVP& pi,VVP& pj,VVP& pk,
 		reverse_copy(edge_i.begin(), edge_i.end(), rev_i.begin());
 
 		// For each edge j
-		for (ushort j = 0; j < sz_j; ++j)
-		{
+		for (ushort j = 0; j < sz_j; ++j) {
 			VP& edge_j = pj[j];
 			ushort sz_ej = ushort(edge_j.size());
 
@@ -1306,15 +1196,13 @@ void CNEllipseDetector::Triplets231(VVP& pi,VVP& pj,VVP& pk,
 			Point& pjl = edge_j[sz_ej - 1];			
 
 			// CONSTRAINTS on position
-			if (pjf.y < pif.y - _fThPosition)
-			{
+			if (pjf.y < pif.y - _fThPosition) {
 				//discard
 				continue;
 			}
 
 			//添加约束
-			if(myselect1&&fabs(value4SixPoints(T231)-1)>tCNC)
-			{
+			if(myselect1&&fabs(value4SixPoints(T231)-1)>tCNC) {
 				continue;
 			}
 
@@ -1325,8 +1213,7 @@ void CNEllipseDetector::Triplets231(VVP& pi,VVP& pj,VVP& pk,
 			uint key_ij = GenerateKey(PAIR_23, i, j);
 
 			// For each edge k
-			for (ushort k = 0; k < sz_k; ++k)
-			{
+			for (ushort k = 0; k < sz_k; ++k) {
 				VP& edge_k = pk[k];
 				ushort sz_ek = ushort(edge_k.size());
 
@@ -1335,21 +1222,18 @@ void CNEllipseDetector::Triplets231(VVP& pi,VVP& pj,VVP& pk,
 				Point& pkl = edge_k[sz_ek - 1];
 
 				// CONSTRAINTS on position
-				if (pkf.x < pil.x - _fThPosition)
-				{
+				if (pkf.x < pil.x - _fThPosition) {
 					//discard
 					continue;
 				}
 
 
 				// 添加限定条件2
-				if(myselect2&&fabs(value4SixPoints(pif,pim,pil,pkf,pkm,pkl)-1)>tCNC)
-				{
+				if(myselect2&&fabs(value4SixPoints(pif,pim,pil,pkf,pkm,pkl)-1)>tCNC) {
 					continue;
 				}
 				// 添加限定条件3
-				if(myselect3&&fabs(value4SixPoints(pjf,pjm,pjl,pkf,pkm,pkl)-1)>tCNC)
-				{
+				if(myselect3&&fabs(value4SixPoints(pjf,pjm,pjl,pkf,pkm,pkl)-1)>tCNC) {
 					continue;
 				}
 
@@ -1359,41 +1243,33 @@ void CNEllipseDetector::Triplets231(VVP& pi,VVP& pj,VVP& pk,
 
 				EllipseData data_ij, data_ik;
 
-				if (data.count(key_ij) == 0)
-				{
+				if (data.count(key_ij) == 0) {
 					// 2,3 -> reverse 2,3
 
 					GetFastCenter(rev_i, rev_j, data_ij);
 					data.insert(pair<uint, EllipseData>(key_ij, data_ij));
-				}
-				else
-				{
+				} else {
 					data_ij = data.at(key_ij);
 				}
 
-				if (data.count(key_ik) == 0)
-				{
+				if (data.count(key_ik) == 0) {
 					// 2,1 -> reverse 1
 					VP rev_k(edge_k.size());
 					reverse_copy(edge_k.begin(), edge_k.end(), rev_k.begin());
 
 					GetFastCenter(edge_i, rev_k, data_ik);
 					data.insert(pair<uint, EllipseData>(key_ik, data_ik));
-				}
-				else
-				{
+				} else {
 					data_ik = data.at(key_ik);
 				}
 
 				// INVALID CENTERS
-				if (!data_ij.isValid || !data_ik.isValid)
-				{
+				if (!data_ij.isValid || !data_ik.isValid) {
 					continue;
 				}
 
 				// CONSTRAINT ON CENTERS
-				if (ed2(data_ij.Cab, data_ik.Cab) > _fMaxCenterDistance2)
-				{
+				if (ed2(data_ij.Cab, data_ik.Cab) > _fMaxCenterDistance2) {
 					//discard
 					continue;
 				}
@@ -1410,15 +1286,13 @@ void CNEllipseDetector::Triplets231(VVP& pi,VVP& pj,VVP& pk,
 
 void CNEllipseDetector::Triplets342(VVP& pi,VVP& pj,VVP& pk,
 									unordered_map<uint, EllipseData>& data,
-									vector<Ellipse>& ellipses)
-{
+									vector<Ellipse>& ellipses) {
 	ushort sz_i = ushort(pi.size());
 	ushort sz_j = ushort(pj.size());
 	ushort sz_k = ushort(pk.size());
 
 	// For each edge i
-	for (ushort i = 0; i < sz_i; ++i)
-	{
+	for (ushort i = 0; i < sz_i; ++i) {
 		VP& edge_i = pi[i];
 		ushort sz_ei = ushort(edge_i.size());
 
@@ -1430,8 +1304,7 @@ void CNEllipseDetector::Triplets342(VVP& pi,VVP& pj,VVP& pk,
 		reverse_copy(edge_i.begin(), edge_i.end(), rev_i.begin());
 
 		// For each edge j
-		for (ushort j = 0; j < sz_j; ++j)
-		{
+		for (ushort j = 0; j < sz_j; ++j) {
 			VP& edge_j = pj[j];
 			ushort sz_ej = ushort(edge_j.size());
 
@@ -1440,16 +1313,14 @@ void CNEllipseDetector::Triplets342(VVP& pi,VVP& pj,VVP& pk,
 			Point& pjl = edge_j[sz_ej - 1];
 
 			//CONSTRAINTS on position
-			if (pjf.x < pil.x - _fThPosition) 		//is left
-			{
+			if (pjf.x < pil.x - _fThPosition) {//is left
 				//discard
 				continue;
 			}
 
 
 			// 添加限定条件
-			if(myselect1&&fabs(value4SixPoints(T342)-1)>tCNC)
-			{
+			if(myselect1&&fabs(value4SixPoints(T342)-1)>tCNC) {
 				continue;
 			}
 
@@ -1460,8 +1331,7 @@ void CNEllipseDetector::Triplets342(VVP& pi,VVP& pj,VVP& pk,
 			uint key_ij = GenerateKey(PAIR_34, i, j);
 
 			// For each edge k
-			for (ushort k = 0; k < sz_k; ++k)
-			{
+			for (ushort k = 0; k < sz_k; ++k) {
 				VP& edge_k = pk[k];
 				ushort sz_ek = ushort(edge_k.size());
 
@@ -1470,20 +1340,17 @@ void CNEllipseDetector::Triplets342(VVP& pi,VVP& pj,VVP& pk,
 				Point& pkl = edge_k[sz_ek - 1];
 
 				//CONSTRAINTS on position
-				if (pkf.y > pif.y + _fThPosition)
-				{
+				if (pkf.y > pif.y + _fThPosition) {
 					continue;
 				}
 
 
 				// 添加限定条件2
-				if(myselect2&&fabs(value4SixPoints(pif,pim,pil,pkf,pkm,pkl)-1)>tCNC)
-				{
+				if(myselect2&&fabs(value4SixPoints(pif,pim,pil,pkf,pkm,pkl)-1)>tCNC) {
 					continue;
 				}
 				// 添加限定条件3
-				if(myselect3&&fabs(value4SixPoints(pjf,pjm,pjl,pkf,pkm,pkl)-1)>tCNC)
-				{
+				if(myselect3&&fabs(value4SixPoints(pjf,pjm,pjl,pkf,pkm,pkl)-1)>tCNC) {
 					continue;
 				}
 				uint key_ik = GenerateKey(PAIR_23, k, i);
@@ -1492,20 +1359,16 @@ void CNEllipseDetector::Triplets342(VVP& pi,VVP& pj,VVP& pk,
 
 				EllipseData data_ij, data_ik;
 
-				if (data.count(key_ij) == 0)
-				{
+				if (data.count(key_ij) == 0) {
 					//3,4 -> reverse 4
 
 					GetFastCenter(edge_i, rev_j, data_ij);
 					data.insert(pair<uint, EllipseData>(key_ij, data_ij));
-				}
-				else
-				{
+				} else {
 					data_ij = data.at(key_ij);
 				}
 
-				if (data.count(key_ik) == 0)
-				{
+				if (data.count(key_ik) == 0) {
 					//3,2 -> reverse 3,2
 
 					VP rev_k(edge_k.size());
@@ -1514,22 +1377,18 @@ void CNEllipseDetector::Triplets342(VVP& pi,VVP& pj,VVP& pk,
 					GetFastCenter(rev_i, rev_k, data_ik);
 
 					data.insert(pair<uint, EllipseData>(key_ik, data_ik));
-				}
-				else
-				{
+				} else {
 					data_ik = data.at(key_ik);
 				}
 
 
 				// INVALID CENTERS
-				if (!data_ij.isValid || !data_ik.isValid)
-				{
+				if (!data_ij.isValid || !data_ik.isValid) {
 					continue;
 				}
 
 				// CONSTRAINT ON CENTERS
-				if (ed2(data_ij.Cab, data_ik.Cab) > _fMaxCenterDistance2)
-				{
+				if (ed2(data_ij.Cab, data_ik.Cab) > _fMaxCenterDistance2) {
 					//discard
 					continue;
 				}
@@ -1546,15 +1405,13 @@ void CNEllipseDetector::Triplets342(VVP& pi,VVP& pj,VVP& pk,
 
 void CNEllipseDetector::Triplets413(VVP& pi,VVP& pj,VVP& pk,
 									unordered_map<uint, EllipseData>& data,
-									vector<Ellipse>& ellipses)
-{
+									vector<Ellipse>& ellipses) {
 	ushort sz_i = ushort(pi.size());
 	ushort sz_j = ushort(pj.size());
 	ushort sz_k = ushort(pk.size());
 
 	// For each edge i
-	for (ushort i = 0; i < sz_i; ++i)
-	{
+	for (ushort i = 0; i < sz_i; ++i) {
 		VP& edge_i = pi[i];
 		ushort sz_ei = ushort(edge_i.size());
 
@@ -1566,8 +1423,7 @@ void CNEllipseDetector::Triplets413(VVP& pi,VVP& pj,VVP& pk,
 		reverse_copy(edge_i.begin(), edge_i.end(), rev_i.begin());
 
 		// For each edge j
-		for (ushort j = 0; j < sz_j; ++j)
-		{
+		for (ushort j = 0; j < sz_j; ++j) {
 			VP& edge_j = pj[j];
 			ushort sz_ej = ushort(edge_j.size());
 
@@ -1576,23 +1432,20 @@ void CNEllipseDetector::Triplets413(VVP& pi,VVP& pj,VVP& pk,
 			Point& pjl = edge_j[sz_ej - 1];
 
 			//CONSTRAINTS on position
-			if (pjl.y > pil.y + _fThPosition)  		//is below
-			{
+			if (pjl.y > pil.y + _fThPosition) {//is below
 				//discard
 				continue;
 			}
 
 			// 添加限定条件 
-			if(myselect1&&fabs(value4SixPoints(T413)-1)>tCNC)
-			{
+			if(myselect1&&fabs(value4SixPoints(T413)-1)>tCNC) {
 				continue;
 			}
 
 			uint key_ij = GenerateKey(PAIR_14, j, i);
 
 			// For each edge k
-			for (ushort k = 0; k < sz_k; ++k)
-			{
+			for (ushort k = 0; k < sz_k; ++k) {
 				VP& edge_k = pk[k];
 				ushort sz_ek = ushort(edge_k.size());
 
@@ -1601,21 +1454,18 @@ void CNEllipseDetector::Triplets413(VVP& pi,VVP& pj,VVP& pk,
 				Point& pkl = edge_k[sz_ek - 1];
 
 				//CONSTRAINTS on position
-				if (pkl.x > pif.x + _fThPosition)
-				{
+				if (pkl.x > pif.x + _fThPosition) {
 					//discard
 					continue;
 				}
 
 
 				// 添加限定条件2
-				if(myselect2&&fabs(value4SixPoints(pif,pim,pil,pkf,pkm,pkl)-1)>tCNC)
-				{
+				if(myselect2&&fabs(value4SixPoints(pif,pim,pil,pkf,pkm,pkl)-1)>tCNC) {
 					continue;
 				}
 				// 添加限定条件3
-				if(myselect3&&fabs(value4SixPoints(pjf,pjm,pjl,pkf,pkm,pkl)-1)>tCNC)
-				{
+				if(myselect3&&fabs(value4SixPoints(pjf,pjm,pjl,pkf,pkm,pkl)-1)>tCNC) {
 					continue;
 				}
 
@@ -1625,37 +1475,29 @@ void CNEllipseDetector::Triplets413(VVP& pi,VVP& pj,VVP& pk,
 
 				EllipseData data_ij, data_ik;
 
-				if (data.count(key_ij) == 0)
-				{
+				if (data.count(key_ij) == 0) {
 					// 4,1 -> OK
 					GetFastCenter(edge_i, edge_j, data_ij);
 					data.insert(pair<uint, EllipseData>(key_ij, data_ij));
-				}
-				else
-				{
+				} else {
 					data_ij = data.at(key_ij);
 				}
 
-				if (data.count(key_ik) == 0)
-				{
+				if (data.count(key_ik) == 0) {
 					// 4,3 -> reverse 4
 					GetFastCenter(rev_i, edge_k, data_ik);
 					data.insert(pair<uint, EllipseData>(key_ik, data_ik));
-				}
-				else
-				{
+				} else {
 					data_ik = data.at(key_ik);
 				}
 
 				// INVALID CENTERS
-				if (!data_ij.isValid || !data_ik.isValid)
-				{
+				if (!data_ij.isValid || !data_ik.isValid) {
 					continue;
 				}
 
 				// CONSTRAIN ON CENTERS
-				if (ed2(data_ij.Cab, data_ik.Cab) > _fMaxCenterDistance2)
-				{
+				if (ed2(data_ij.Cab, data_ik.Cab) > _fMaxCenterDistance2) {
 					//discard
 					continue;
 				}
@@ -1669,8 +1511,7 @@ void CNEllipseDetector::Triplets413(VVP& pi,VVP& pj,VVP& pk,
 	}
 };
 
-void CNEllipseDetector::PrePeocessing(Mat1b& I,Mat1b& DP,Mat1b& DN)
-{
+void CNEllipseDetector::PrePeocessing(Mat1b& I,Mat1b& DP,Mat1b& DN) {
 
 	Tic(0); //edge detection
 	// Mid smooth
@@ -1690,18 +1531,15 @@ void CNEllipseDetector::PrePeocessing(Mat1b& I,Mat1b& DP,Mat1b& DN)
 	Tac(1); //preprocessing
 
 	// For each edge points, compute the edge direction
-	for (int i = 0; i<_szImg.height; ++i)
-	{
+	for (int i = 0; i<_szImg.height; ++i) {
 		short* _dx = DX.ptr<short>(i);
 		short* _dy = DY.ptr<short>(i);
 		uchar* _e = E.ptr<uchar>(i);
 		uchar* _dp = DP.ptr<uchar>(i);
 		uchar* _dn = DN.ptr<uchar>(i);
 
-		for (int j = 0; j<_szImg.width; ++j)
-		{
-			if (!((_e[j] <= 0) || (_dx[j] == 0) || (_dy[j] == 0)))
-			{
+		for (int j = 0; j<_szImg.width; ++j) {
+			if (!((_e[j] <= 0) || (_dx[j] == 0) || (_dy[j] == 0))) {
 				// Angle of the tangent
 				float phi = -(float(_dx[j]) / float(_dy[j]));
 
@@ -1714,8 +1552,7 @@ void CNEllipseDetector::PrePeocessing(Mat1b& I,Mat1b& DP,Mat1b& DN)
 	Toc(1); //preprocessing
 };
 
-void CNEllipseDetector::Detect(Mat1b& I, vector<Ellipse>& ellipses)
-{
+void CNEllipseDetector::Detect(Mat1b& I, vector<Ellipse>& ellipses) {
 	countsOfFindEllipse=0;
 	countsOfGetFastCenter=0;
 	Tic(1); //prepare data structure
@@ -1785,8 +1622,7 @@ void CNEllipseDetector::Detect(Mat1b& I, vector<Ellipse>& ellipses)
 };
 
 // Ellipse clustering procedure. See Sect [3.3.2] in the paper.
-void CNEllipseDetector::ClusterEllipses(vector<Ellipse>& ellipses)
-{
+void CNEllipseDetector::ClusterEllipses(vector<Ellipse>& ellipses) {
 	float th_Da = 0.1f;
 	float th_Db = 0.1f;
 	float th_Dr = 0.1f;
@@ -1803,8 +1639,7 @@ void CNEllipseDetector::ClusterEllipses(vector<Ellipse>& ellipses)
 
 	bool bFoundCluster = false;
 
-	for (int i = 1; i<iNumOfEllipses; ++i)
-	{
+	for (int i = 1; i<iNumOfEllipses; ++i) {
 		Ellipse& e1 = ellipses[i];
 
 		int sz_clusters = int(clusters.size());
@@ -1813,8 +1648,7 @@ void CNEllipseDetector::ClusterEllipses(vector<Ellipse>& ellipses)
 		float Decc1 = e1._b / e1._a;
 
 		bool bFoundCluster = false;
-		for (int j = 0; j<sz_clusters; ++j)
-		{
+		for (int j = 0; j<sz_clusters; ++j) {
 			Ellipse& e2 = clusters[j];
 
 			float ba_e2 = e2._b / e2._a;
@@ -1823,32 +1657,28 @@ void CNEllipseDetector::ClusterEllipses(vector<Ellipse>& ellipses)
 
 			// Centers
 			float Dc = ((e1._xc - e2._xc)*(e1._xc - e2._xc) + (e1._yc - e2._yc)*(e1._yc - e2._yc));
-			if (Dc > th_Dc)
-			{
+			if (Dc > th_Dc) {
 				//not same cluster
 				continue;
 			}
 
 			// a
 			float Da = abs(e1._a - e2._a) / max(e1._a, e2._a);
-			if (Da > th_Da)
-			{
+			if (Da > th_Da) {
 				//not same cluster
 				continue;
 			}
 
 			// b
 			float Db = abs(e1._b - e2._b) / min(e1._b, e2._b);
-			if (Db > th_Db)
-			{
+			if (Db > th_Db) {
 				//not same cluster
 				continue;
 			}
 
 			// angle
 			float Dr = GetMinAnglePI(e1._rad, e2._rad) / float(CV_PI);
-			if ((Dr > th_Dr) && (ba_e1 < th_Dr_circle) && (ba_e2 < th_Dr_circle))
-			{
+			if ((Dr > th_Dr) && (ba_e1 < th_Dr_circle) && (ba_e2 < th_Dr_circle)) {
 				//not same cluster
 				continue;
 			}
@@ -1859,8 +1689,7 @@ void CNEllipseDetector::ClusterEllipses(vector<Ellipse>& ellipses)
 			break;
 		}
 
-		if (!bFoundCluster)
-		{
+		if (!bFoundCluster) {
 			// Create a new cluster			
 			clusters.push_back(e1);
 		}

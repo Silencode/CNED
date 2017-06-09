@@ -3,13 +3,17 @@ This code is intended for academic use only.
 You are free to use and modify the code, at your own risk.
 
 If you use this code, or find it useful, please refer to the paper:
-
+Qi Jia, Xin Fan, Zhongxuan Luo, Lianbo Song, and Tie Qiu, 
+¡°A Fast Ellipse Detector Using Projective Invariant Pruning¡±, 
+IEEE Transactions on Image Processing, 26(8): 3665-3679, 2017. 
+http://ieeexplore.ieee.org/document/7929406/
+(http://dx.doi.org/10.1109/TIP.2017.2704660)
 
 The comments in the code refer to the abovementioned paper.
 If you need further details about the code or the algorithm, please contact me at:
+lianbosong#foxmail.com
 
-lianbosong@foxmail.com
-last update: 2017-2-8
+last update: 2017-5-4
 */
 
 #include "EDLibCommon.h"
@@ -19,14 +23,13 @@ last update: 2017-2-8
 //Parameters Settings
 float	fThScoreScore = 0.55f;	//
 float	fMinReliability	= 0.4f;	// Const parameters to discard bad ellipses 0.4
-float	fTaoCenters = 0.05f;//0.05 	
-int		ThLength=16;//16
-float	MinOrientedRectSide=3.0f;
+float	fTaoCenters = 0.05f;
+int		ThLength = 16;
+float	MinOrientedRectSide = 3.0f;
 int 	iNs = 16;//
-float	scale=1;
+float	scale = 1.0f;
 
-void OnImage()
-{
+void OnImage() {
 	string sWorkingDir = "C:\\Users\\lianbo\\Documents\\data\\ellipse_dataset\\PrasadImages-DatasetPrasad\\";
 	string imagename = "027_0003.jpg";
 
@@ -52,7 +55,7 @@ void OnImage()
 	double	dPreProcessingGaussSigma		= 1.0;
 
 	float	fDistanceToEllipseContour		= 0.1f;	// (Sect. - Validation)
-	
+
 	CNEllipseDetector cned;
 	// Initialize Detector with selected parameters
 	cned.SetParameters	(szPreProcessingGaussKernelSize,dPreProcessingGaussSigma,		
@@ -83,8 +86,7 @@ void OnImage()
 	Mat3b resultImage = image.clone();
 
 	// Draw GT ellipses
-	for (unsigned i = 0; i < gt.size(); ++i)
-	{
+	for (unsigned i = 0; i < gt.size(); ++i) {
 		Ellipse& e = gt[i];
 		Scalar color(0, 0, 255);
 		ellipse(resultImage, Point(cvRound(e._xc), cvRound(e._yc)), Size(cvRound(e._a), cvRound(e._b)), e._rad*180.0 / CV_PI, 0.0, 360.0, color, 3);
@@ -94,14 +96,13 @@ void OnImage()
 
 	Mat3b res = image.clone();
 	vector<float> result;
-	result=Evaluate(gt, ellsYaed, fThScoreScore, res);
+	result = Evaluate(gt, ellsYaed, fThScoreScore, res);
 	cout << "F-measure : " << result[5] << endl;
 	imshow("CNED", resultImage);
 	waitKey();
 }
 
-void OnDataset()
-{
+void OnDataset() {
 	string sWorkingDir = "C:\\Users\\lianbo\\Documents\\data\\ellipse_dataset\\PrasadImages-DatasetPrasad\\";
 	string out_folder = "C:\\Users\\lianbo\\Documents\\data\\ellipse_dataset\\PrasadImages-DatasetPrasad\\Output\\";
 
@@ -115,8 +116,7 @@ void OnDataset()
 	glob(sWorkingDir + "images\\" + "*.*", names);
 
 	int counter = 0;
-	for (const auto& image_name : names)
-	{
+	for (const auto& image_name : names) {
 		cout << double(counter++) / names.size() << "\n";
 
 		string name_ext = image_name.substr(image_name.find_last_of("\\") + 1);
@@ -167,8 +167,7 @@ void OnDataset()
 		Mat3b resultImage = image.clone();
 
 		// Draw GT ellipses
-		for (unsigned i = 0; i < gt.size(); ++i)
-		{
+		for (unsigned i = 0; i < gt.size(); ++i) {
 			Ellipse& e = gt[i];
 			Scalar color(0, 0, 255);
 			ellipse(resultImage, Point(cvRound(e._xc), cvRound(e._yc)), Size(cvRound(e._a), cvRound(e._b)), e._rad*180.0 / CV_PI, 0.0, 360.0, color, 3);
@@ -194,8 +193,7 @@ void OnDataset()
 
 	getchar();
 }
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
 	OnImage();
 	//OnDataset();
 	return 0;	   
